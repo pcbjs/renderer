@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Prettier and rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.1
+          components: rustfmt
+      - run: npm ci
+      - run: npm run format:check
+
+  test:
+    name: Build and test, Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.1
+          targets: wasm32-unknown-unknown
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/cache@v4
+        id: wbg
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-0.2.129
+      - if: steps.wbg.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+      - run: npm ci
+      - run: npm run lint:core
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:core
+      - run: npm run spec:check
+      - name: Install dist and render a fixture
+        run: npm run pack-smoke
+      - name: Install docs dependencies
+        if: matrix.node == 22
+        run: npm ci --prefix docs
+      - name: Build documentation
+        if: matrix.node == 22
+        run: npm run docs:build
+
+  bench:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.1
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/cache@v4
+        id: wbg
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-0.2.129
+      - if: steps.wbg.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+      - run: npm ci
+      - run: npm run build
+      - run: npm run bench

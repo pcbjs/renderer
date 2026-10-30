@@ -1,0 +1,611 @@
+{
+  "schemaVersion": 1,
+  "scope": "Tracked glTF static rendering behaviors, not an exhaustive normative-clause inventory or certification.",
+  "items": [
+    {
+      "id": "GLB-01",
+      "behavior": "Chunk framing, ordering and unknown trailing chunks",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#glb-file-format-specification",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs"],
+      "tests": [
+        {
+          "file": "test/spec-behavior.test.mjs",
+          "name": "GLB ignores unknown trailing chunks and rejects invalid chunk layout"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "ASSET-01",
+      "behavior": "Major/minor version and minimum version negotiation",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#asset",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs"],
+      "tests": [
+        {
+          "file": "test/spec-behavior.test.mjs",
+          "name": "asset versions honor minor forward compatibility and minimum requirements"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "RESOURCE-01",
+      "behavior": "Buffer resource loading",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#buffers-and-buffer-views",
+      "status": "partial",
+      "implementation": ["src/core/gltf/mod.rs"],
+      "tests": [],
+      "references": ["BoxInterleaved"],
+      "limitations": "One embedded GLB buffer only. External and data URI buffers and multiple buffers are unsupported; reference tests repack buffers before loading."
+    },
+    {
+      "id": "SCENE-01",
+      "behavior": "Scene selection, hierarchy and application extras",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#scenes",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/gltf/scene.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "scene selection, metadata, node indices and parent translations are independent of extras"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "TRANSFORM-01",
+      "behavior": "Right-handed rotation",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#coordinate-system-and-units",
+      "status": "implemented",
+      "implementation": ["src/core/math.rs"],
+      "tests": [
+        {
+          "file": "src/core/math.rs",
+          "name": "y_rotation_is_right_handed"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "TRANSFORM-02",
+      "behavior": "Inverse-transpose normal transforms",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#transformations",
+      "status": "implemented",
+      "implementation": ["src/core/math.rs"],
+      "tests": [
+        {
+          "file": "src/core/math.rs",
+          "name": "normal_matrix_inverts_scale"
+        }
+      ],
+      "references": ["NegativeScaleTest"],
+      "limitations": ""
+    },
+    {
+      "id": "TRANSFORM-03",
+      "behavior": "Mirrored transforms with tangent handedness",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#transformations",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/materials.test.mjs",
+          "name": "normal maps use authored or MikkTSpace tangents, strength, and mirrored node transforms"
+        }
+      ],
+      "references": ["NegativeScaleTest"],
+      "limitations": ""
+    },
+    {
+      "id": "ACCESSOR-01",
+      "behavior": "Strided normalized mesh attributes",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#accessors",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/accessor.rs"],
+      "tests": [
+        {
+          "file": "src/core/gltf/accessor.rs",
+          "name": "interleaved_normalized_colors_keep_their_stride_and_default_alpha"
+        }
+      ],
+      "references": ["BoxInterleaved", "BoxVertexColors"],
+      "limitations": ""
+    },
+    {
+      "id": "ACCESSOR-02",
+      "behavior": "Sparse accessors and zero-initialized bases",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#sparse-accessors",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/accessor.rs"],
+      "tests": [
+        {
+          "file": "src/core/gltf/accessor.rs",
+          "name": "sparse_zero_base_normalized_colors_and_strided_overrides"
+        }
+      ],
+      "references": ["SimpleSparseAccessor"],
+      "limitations": ""
+    },
+    {
+      "id": "ACCESSOR-03",
+      "behavior": "Sparse index precision, ordering and bounds",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#sparse-accessors",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/accessor.rs"],
+      "tests": [
+        {
+          "file": "src/core/gltf/accessor.rs",
+          "name": "sparse_indices_preserve_u32_precision_and_validate_order_and_bounds"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "ACCESSOR-04",
+      "behavior": "General accessor shapes and consumers",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#accessor-data-types",
+      "status": "partial",
+      "implementation": ["src/core/gltf/accessor.rs"],
+      "tests": [],
+      "references": [],
+      "limitations": "Coverage focuses on consumed mesh vectors and indices; padded MAT2/MAT3 and animation/skin consumers are not implemented."
+    },
+    {
+      "id": "GEOMETRY-01",
+      "behavior": "Triangle strip and fan winding, degenerates",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs"],
+      "tests": [
+        {
+          "file": "test/spec-behavior.test.mjs",
+          "name": "triangle strips and fans preserve winding and skip degenerate triangles"
+        }
+      ],
+      "references": ["MeshPrimitiveModes"],
+      "limitations": ""
+    },
+    {
+      "id": "GEOMETRY-02",
+      "behavior": "Non-indexed triangles",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs"],
+      "tests": [
+        {
+          "file": "test/spec-behavior.test.mjs",
+          "name": "non-indexed triangles match indexed geometry"
+        }
+      ],
+      "references": ["TriangleWithoutIndices"],
+      "limitations": ""
+    },
+    {
+      "id": "GEOMETRY-03",
+      "behavior": "Flat normals when normals are absent",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "missing normals render hard edges and ignore supplied tangents"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "GEOMETRY-04",
+      "behavior": "MikkTSpace tangent generation and UV selection",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/tangents.rs"],
+      "tests": [
+        {
+          "file": "test/materials.test.mjs",
+          "name": "normal maps generate tangents from their selected UV set and handle degenerate UVs"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "GEOMETRY-05",
+      "behavior": "Points and lines",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes",
+      "status": "unsupported",
+      "implementation": ["src/core/gltf/scene.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "unsupported content has structured diagnostics and a strict load policy"
+        }
+      ],
+      "references": ["MeshPrimitiveModes"],
+      "limitations": "Skipped with diagnostics; strict loading rejects them."
+    },
+    {
+      "id": "MATERIAL-01",
+      "behavior": "Linear factors and sRGB base colour textures",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "linear colour factors are the default, with an explicit legacy load option"
+        }
+      ],
+      "references": ["BoxTextured"],
+      "limitations": ""
+    },
+    {
+      "id": "MATERIAL-02",
+      "behavior": "Metallic B and roughness G channels multiply factors",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials",
+      "status": "implemented",
+      "implementation": ["src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/materials.test.mjs",
+          "name": "metallic and roughness maps use linear B and G channels and multiply factors in both lighting modes"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "MATERIAL-03",
+      "behavior": "PBR appearance and energy response",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials",
+      "status": "partial",
+      "implementation": ["src/core/lighting.rs"],
+      "tests": [
+        {
+          "file": "test/lighting.test.mjs",
+          "name": "studio metal reflects the environment and roughness changes direct highlights"
+        }
+      ],
+      "references": [],
+      "limitations": "Classic and studio are approximate lighting models; no calibrated Khronos Sample Viewer image comparisons or complete energy-conservation audit."
+    },
+    {
+      "id": "MATERIAL-04",
+      "behavior": "Occlusion affects indirect light only",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials",
+      "status": "implemented",
+      "implementation": ["src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/materials.test.mjs",
+          "name": "occlusion affects indirect lighting only, with strength, and does not dim emission"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "MATERIAL-05",
+      "behavior": "Emissive factor and sRGB texture",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials",
+      "status": "implemented",
+      "implementation": ["src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/lighting.test.mjs",
+          "name": "emissive textures decode sRGB, ignore texture alpha, and require an emissive factor"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "MATERIAL-06",
+      "behavior": "Back-face culling and double-sided visibility",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials",
+      "status": "implemented",
+      "implementation": ["src/core/geometry.rs"],
+      "tests": [
+        {
+          "file": "src/core/render/tests.rs",
+          "name": "a_back_face_is_culled_unless_double_sided"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "ALPHA-01",
+      "behavior": "Factor, vertex and texture alpha for OPAQUE/MASK/BLEND",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials",
+      "status": "implemented",
+      "implementation": ["src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/output.test.mjs",
+          "name": "texture, vertex and factor alpha multiply only for BLEND and MASK"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "ALPHA-02",
+      "behavior": "Linear depth-ordered blending",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#materials",
+      "status": "partial",
+      "implementation": ["src/core/transparency.rs", "src/core/framebuffer.rs"],
+      "tests": [
+        {
+          "file": "test/output.test.mjs",
+          "name": "BLEND composites in linear depth order and survives PNG round-trip"
+        }
+      ],
+      "references": [],
+      "limitations": "Bounded depth peeling limits overlapping transparent layers; transparent materials receive but do not cast shadows."
+    },
+    {
+      "id": "TEXTURE-01",
+      "behavior": "PNG embedded and data URI image loading",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#images",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/images.rs"],
+      "tests": [
+        {
+          "file": "test/materials.test.mjs",
+          "name": "one image can be shared by colour and data slots without sRGB contamination"
+        }
+      ],
+      "references": ["BoxTextured"],
+      "limitations": ""
+    },
+    {
+      "id": "TEXTURE-02",
+      "behavior": "JPEG image decoding",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#images",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/images.rs"],
+      "tests": [
+        {
+          "file": "src/core/gltf/images.rs",
+          "name": "jpeg_textures_decode_to_linear_colour_with_opaque_alpha"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "TEXTURE-03",
+      "behavior": "Texture coordinate sets",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#textures",
+      "status": "partial",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/texture.rs"],
+      "tests": [
+        {
+          "file": "test/materials.test.mjs",
+          "name": "texture transforms select UV1, compose scale then rotation then offset, and work when required"
+        }
+      ],
+      "references": ["MultiUVTest"],
+      "limitations": "UV0 and UV1 only; higher referenced sets are rejected."
+    },
+    {
+      "id": "TEXTURE-04",
+      "behavior": "Nearest, linear and mip filter combinations",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#samplers",
+      "status": "implemented",
+      "implementation": ["src/core/texture.rs"],
+      "tests": [
+        {
+          "file": "src/core/texture.rs",
+          "name": "sampler_filters_select_and_interpolate_levels_and_texels"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "TEXTURE-05",
+      "behavior": "Wrapping at positive and negative UV boundaries",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#samplers",
+      "status": "implemented",
+      "implementation": ["src/core/texture.rs"],
+      "tests": [
+        {
+          "file": "src/core/texture.rs",
+          "name": "wrapping_handles_signed_boundaries_in_both_axes"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "TEXTURE-06",
+      "behavior": "Linear-light mip generation and non-power-of-two sizes",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#samplers",
+      "status": "implemented",
+      "implementation": ["src/core/texture.rs"],
+      "tests": [
+        {
+          "file": "src/core/texture.rs",
+          "name": "odd_sized_mipmaps_preserve_the_full_image_average"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "CAMERA-01",
+      "behavior": "Perspective and orthographic node cameras, aspect and clipping",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#cameras",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/scene.rs", "src/core/camera.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "authored cameras honor node transforms, clip planes, and aspect ratio"
+        }
+      ],
+      "references": ["Cameras"],
+      "limitations": ""
+    },
+    {
+      "id": "DEFORM-01",
+      "behavior": "Animation evaluation",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#animations",
+      "status": "unsupported",
+      "implementation": ["src/core/gltf/scene.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "unsupported content has structured diagnostics and a strict load policy"
+        }
+      ],
+      "references": ["AnimatedTriangle"],
+      "limitations": "Static node state only; animation is diagnosed, or rejected in strict mode."
+    },
+    {
+      "id": "DEFORM-02",
+      "behavior": "Skin deformation",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#skins",
+      "status": "unsupported",
+      "implementation": ["src/core/gltf/scene.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "unsupported content has structured diagnostics and a strict load policy"
+        }
+      ],
+      "references": ["SimpleSkin"],
+      "limitations": "Skinning is not evaluated; rest geometry is rendered with a diagnostic, or rejected in strict mode."
+    },
+    {
+      "id": "DEFORM-03",
+      "behavior": "Morph target evaluation",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#morph-targets",
+      "status": "unsupported",
+      "implementation": ["src/core/gltf/scene.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "unsupported content has structured diagnostics and a strict load policy"
+        }
+      ],
+      "references": ["AnimatedMorphCube"],
+      "limitations": "Morph targets and weights are not applied; diagnosed, or rejected in strict mode."
+    },
+    {
+      "id": "EXTENSION-01",
+      "behavior": "Required extension rejection and optional extension diagnostics",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#specifying-extensions",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/gltf/scene.rs"],
+      "tests": [
+        {
+          "file": "test/errors.test.mjs",
+          "name": "a required extension is rejected by name"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "EXTENSION-02",
+      "behavior": "KHR_texture_transform",
+      "spec": "https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_transform",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/gltf/scene.rs", "src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/materials.test.mjs",
+          "name": "texture transforms select UV1, compose scale then rotation then offset, and work when required"
+        }
+      ],
+      "references": ["TextureTransformTest"],
+      "limitations": ""
+    },
+    {
+      "id": "EXTENSION-03",
+      "behavior": "KHR_materials_unlit",
+      "spec": "https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/gltf/scene.rs", "src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/output.test.mjs",
+          "name": "required unlit ignores lighting and emission but preserves culling and alpha"
+        }
+      ],
+      "references": ["UnlitTest"],
+      "limitations": ""
+    },
+    {
+      "id": "EXTENSION-04",
+      "behavior": "KHR_materials_emissive_strength",
+      "spec": "https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/gltf/scene.rs", "src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/output.test.mjs",
+          "name": "emissive strength retains HDR energy until exposure and tone mapping"
+        }
+      ],
+      "references": ["EmissiveStrengthTest"],
+      "limitations": ""
+    },
+    {
+      "id": "EXTENSION-05",
+      "behavior": "KHR_lights_punctual",
+      "spec": "https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual",
+      "status": "implemented",
+      "implementation": ["src/core/gltf/mod.rs", "src/core/gltf/scene.rs", "src/core/material.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "punctual lights use authored units, inverse-square falloff, range, colour and transforms"
+        }
+      ],
+      "references": ["PointLightIntensityTest"],
+      "limitations": ""
+    },
+    {
+      "id": "EXTENSION-06",
+      "behavior": "Spot cone attenuation and light addition",
+      "spec": "https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual",
+      "status": "implemented",
+      "implementation": ["src/core/punctual.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "spot cones fade smoothly and multiple lights add independently"
+        }
+      ],
+      "references": [],
+      "limitations": ""
+    },
+    {
+      "id": "EXTENSION-07",
+      "behavior": "Other extensions, including compressed geometry and advanced materials",
+      "spec": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#specifying-extensions",
+      "status": "unsupported",
+      "implementation": ["src/core/gltf/scene.rs"],
+      "tests": [
+        {
+          "file": "test/interop.test.mjs",
+          "name": "unsupported content has structured diagnostics and a strict load policy"
+        }
+      ],
+      "references": [],
+      "limitations": "Only the four named extensions above are supported. Required unknown extensions fail; optional ones use available core fallback with diagnostics."
+    }
+  ]
+}

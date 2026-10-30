@@ -1,0 +1,9 @@
+dist
+build
+fixtures
+test/golden
+Cargo.lock
+*.wasm
+*.glb
+
+docs/_generated

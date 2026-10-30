@@ -1,0 +1,73 @@
+{
+  "name": "@pcbjs/renderer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CPU renderer that turns a glTF binary into an RGBA image",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build:wasm": "export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo build --locked --release --target wasm32-unknown-unknown && wasm-bindgen --target web --out-dir build/pkg --out-name renderer build/target/wasm32-unknown-unknown/release/pcbjs_renderer.wasm",
+    "build:check": "tsc --noEmit",
+    "build:rollup": "rollup --config scripts/rollup.config.ts --configPlugin esbuild",
+    "build": "npm run build:wasm && npm run build:check && npm run build:rollup",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "format:check": "prettier --check --ignore-unknown . && \"$HOME/.cargo/bin/cargo\" fmt --all -- --check",
+    "bench": "node scripts/bench.mjs",
+    "pack-smoke": "node scripts/pack-smoke.mjs",
+    "docs": "npm run dev --prefix docs",
+    "docs:build": "npm run build --prefix docs",
+    "prepare": "simple-git-hooks",
+    "spec:report": "node scripts/spec-report.mjs",
+    "spec:check": "node scripts/spec-report.mjs --check",
+    "test:core": "export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo test --locked",
+    "lint:core": "export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo clippy --locked --all-targets -- -D warnings",
+    "release:check": "npm run format:check && npm run lint:core && npm run build && npm test && npm run test:core && npm run spec:check && npm run pack-smoke"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pcbjs/renderer.git"
+  },
+  "keywords": [
+    "pcb",
+    "gltf",
+    "glb",
+    "wasm",
+    "renderer",
+    "png"
+  ],
+  "author": "Yuxuan Zhang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pcbjs/renderer/issues"
+  },
+  "homepage": "https://github.com/pcbjs/renderer#readme",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "esbuild": "^0.25.2",
+    "gltf-validator": "^2.0.0-dev.3.10",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.5.3",
+    "rollup": "^4.39.0",
+    "rollup-plugin-dts": "^6.2.1",
+    "rollup-plugin-esbuild": "^6.2.1",
+    "simple-git-hooks": "^2.12.1",
+    "typescript": "^5.8.3"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged && \"$HOME/.cargo/bin/cargo\" fmt --all && git add -u -- src/core"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
+  }
+}

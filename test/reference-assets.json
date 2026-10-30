@@ -1,0 +1,374 @@
+{
+  "revision": "8f492390ddc7a2ae221a1369ef560589cf8c70fb",
+  "repository": "https://github.com/KhronosGroup/glTF-Sample-Assets",
+  "assets": [
+    {
+      "name": "SimpleSparseAccessor",
+      "sha256": "99aea13bf3bd0ee6983d9e6252788b26c8fefd45084bc707ee7c3cdf5ad5a42b",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/SimpleSparseAccessor/README.md",
+          "sha256": "3281bb3b677f543b91db2bf66ed8cc303084041e921cd5f0a693d3d60e310a3c"
+        },
+        {
+          "path": "Models/SimpleSparseAccessor/glTF/SimpleSparseAccessor.bin",
+          "sha256": "8b01fde2d485b480626115ff804f972edb4ef87f23d2600054bcc859cee38f92"
+        },
+        {
+          "path": "Models/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf",
+          "sha256": "852cea1ab8665caca6bee912422ed246feb42819c9905ba17a542937e058825a"
+        }
+      ]
+    },
+    {
+      "name": "TriangleWithoutIndices",
+      "sha256": "88e89e325e9824ae13395471337a6f65eed23e5747ae51a7eff2c0090d8524be",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/TriangleWithoutIndices/README.md",
+          "sha256": "9b214bef86948440f734c364cff992a46e0167f56b6e635e460267720c8e346c"
+        },
+        {
+          "path": "Models/TriangleWithoutIndices/glTF/TriangleWithoutIndices.bin",
+          "sha256": "d8b87038ed2ace74ed183166f6b0a541eab77f7184d50e65edc4bca5ccb5445a"
+        },
+        {
+          "path": "Models/TriangleWithoutIndices/glTF/TriangleWithoutIndices.gltf",
+          "sha256": "b273d61fdbde2b2cd3aeadaae524776a9703c8354d5dfb5fd0da636724c4a62c"
+        }
+      ]
+    },
+    {
+      "name": "BoxInterleaved",
+      "sha256": "478344f692347b43c1ccc358c73093ccc21ab3abdcec3ef98765e34496e7d123",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/BoxInterleaved/README.md",
+          "sha256": "6cedb2eff1d0249ba5bfc0ab1275189a8c1baa74e8bc7e4a99160cd112583edb"
+        },
+        {
+          "path": "Models/BoxInterleaved/glTF/BoxInterleaved.bin",
+          "sha256": "e4e58932bd0772677b557b9aa06ba84ce0b41efdd853645c140ea69f0aece9ed"
+        },
+        {
+          "path": "Models/BoxInterleaved/glTF/BoxInterleaved.gltf",
+          "sha256": "b69bec5fa3a8f0331743ae5591af14fe5ab41ebc657c7447cfbb996a8b4aa325"
+        }
+      ]
+    },
+    {
+      "name": "BoxVertexColors",
+      "sha256": "c5f1b646c4c9c87b596ea1442ecc421d0a601b5c691c38729a806308266c3376",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/BoxVertexColors/README.md",
+          "sha256": "24d7b19b532d083545d921d62f1f59c5f7ac1cdcccd623888ad1ea1d9f4a419f"
+        },
+        {
+          "path": "Models/BoxVertexColors/glTF/BoxVertexColors.gltf",
+          "sha256": "53d15f2357d410d0cc9e798065709054474db25ba52274f012bb7fb96a2eaddf"
+        },
+        {
+          "path": "Models/BoxVertexColors/glTF/buffer.bin",
+          "sha256": "b508427bea091cc29cbe68d8b08e75db27e33559f72104a37343c7e808e72d26"
+        }
+      ]
+    },
+    {
+      "name": "BoxTextured",
+      "sha256": "8fb9441322b32fd1049fbf15fbfde9abbefc6d1a3114d2e49293dd7d5068f15c",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/BoxTextured/README.md",
+          "sha256": "5ccb8002776081436039f9538dd9eaa9d9faa7843e62efcfaf6ff60eee0f07cc"
+        },
+        {
+          "path": "Models/BoxTextured/glTF/BoxTextured.gltf",
+          "sha256": "1e9003a4a2a8822ff60da529357bd8e4dec4a59b1a479017993e7e2ad5fcebef"
+        },
+        {
+          "path": "Models/BoxTextured/glTF/BoxTextured0.bin",
+          "sha256": "2e8c0483fa6665c686ec345f89dcbb2a694a587442584d09f8a83a59633327bc"
+        },
+        {
+          "path": "Models/BoxTextured/glTF/CesiumLogoFlat.png",
+          "sha256": "9c22b05c5b136d03c5621a8765e50a8322be6c35b9de53e9fe22685840d7f469"
+        }
+      ]
+    },
+    {
+      "name": "NegativeScaleTest",
+      "sha256": "f69fa85ad5dbc7b5a96458df465ea6e7e7c635a6ceb160d853ee8288d687e745",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/NegativeScaleTest/README.md",
+          "sha256": "8263f649b088541b821d58e7fe97eb5924440d831f8706bfc5b799ed443d286f"
+        },
+        {
+          "path": "Models/NegativeScaleTest/glTF/CheckAndX.png",
+          "sha256": "19da9a7f987b9a64684500c1de49293c0922f1840f13ce5d38505b8b5fe1c001"
+        },
+        {
+          "path": "Models/NegativeScaleTest/glTF/NegativeScaleLabels2.png",
+          "sha256": "71a79de243ebdd640fb90dba1ba250632de1343537ae86f7e95379fe2da50725"
+        },
+        {
+          "path": "Models/NegativeScaleTest/glTF/NegativeScaleTest.bin",
+          "sha256": "671826651d22463a9d830dc1b9c0ff3d17b2812e06b43466861eac2a7c5211f1"
+        },
+        {
+          "path": "Models/NegativeScaleTest/glTF/NegativeScaleTest.gltf",
+          "sha256": "b534c320b19f7b9a3ddaf12db4fa1da3182ca8ddf9bc61aa7b0a5a5f3b100f18"
+        }
+      ]
+    },
+    {
+      "name": "TextureTransformTest",
+      "sha256": "a20ecbb71bab55596ff274c428de1aa8010d638c61c6cc3ca82acaa9b2f94a23",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/TextureTransformTest/README.md",
+          "sha256": "1022ad635f6ead720586d36477a53843fcb4c3b8f543308b684ec21a83eb12b7"
+        },
+        {
+          "path": "Models/TextureTransformTest/glTF/Arrow.png",
+          "sha256": "5df5b251fed0ac306cf859a30b59a4953d152483a4bed2b84e5bba1c667a1e64"
+        },
+        {
+          "path": "Models/TextureTransformTest/glTF/Correct.png",
+          "sha256": "3a14b12635ebbcee3ea427fbdb4d20da73e4740ec7a51683d700a2d6b4b7861a"
+        },
+        {
+          "path": "Models/TextureTransformTest/glTF/Error.png",
+          "sha256": "8d1032ef535a5c379bf78f9f565d3180ee3fc2d1cfef6892dee6e567728b619c"
+        },
+        {
+          "path": "Models/TextureTransformTest/glTF/NotSupported.png",
+          "sha256": "1fbdeca7e5c105d677a39578e4bab82b89c8aa9f406ee681ede05635ea0f8c74"
+        },
+        {
+          "path": "Models/TextureTransformTest/glTF/TextureTransformTest.bin",
+          "sha256": "d0cdd23f2fa0996a0db99d4932fb9912a51a34e27c8bf832d072dc856ee9a7af"
+        },
+        {
+          "path": "Models/TextureTransformTest/glTF/TextureTransformTest.gltf",
+          "sha256": "c22c8c6c96c0ea4bcbb9b47ea245a093c5ef59acc5fd425effa4c00da4cdf164"
+        },
+        {
+          "path": "Models/TextureTransformTest/glTF/UV.png",
+          "sha256": "ac37ff52fe06a4c8c35ad4e1e7e8da039dfa8afc9b629d40a44ca8b8cfe9d03d"
+        }
+      ]
+    },
+    {
+      "name": "MultiUVTest",
+      "sha256": "0519403369d38cb3de36d0e962a394f4f535c99534591d88bee80acd6f51a9fe",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/MultiUVTest/README.md",
+          "sha256": "03235c77d51562beb381ba460979193b1fe2bfb50a3da62bd788b7136fe35402"
+        },
+        {
+          "path": "Models/MultiUVTest/glTF/MultiUVTest.bin",
+          "sha256": "952adeb8026481be255ccfb4fa8c410b7f847c0fcfc71fac5ca6bb1905ca69fc"
+        },
+        {
+          "path": "Models/MultiUVTest/glTF/MultiUVTest.gltf",
+          "sha256": "d22a984388457f00da6dc6f6ff1bee6d7828ed3c8e7e7236d5698411cd1cf806"
+        },
+        {
+          "path": "Models/MultiUVTest/glTF/uv0.png",
+          "sha256": "c6a1c9390a73f59b4cd67d24c1a02f21020b4d033ffe311e29b9c29579e63c7c"
+        },
+        {
+          "path": "Models/MultiUVTest/glTF/uv1.png",
+          "sha256": "be9bbbfecd86e6ea366dbfc0430e10b6ab1e8e5ad46b95a6c28d25f9f8b1740e"
+        }
+      ]
+    },
+    {
+      "name": "Cameras",
+      "sha256": "300dff8571e40b9b0a0c6f6e99171cea2ab3114d27715b0a5aa9f2ad72d3c4c3",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/Cameras/README.md",
+          "sha256": "50aca293b78a6b01f783a8f645adf3b34dda95675d18ded90dfacead97d7ae32"
+        },
+        {
+          "path": "Models/Cameras/glTF/Cameras.bin",
+          "sha256": "2d73fc484aab11784e8773862e69b28cb7e0d7d1aadac6032ceea7c490cfd15e"
+        },
+        {
+          "path": "Models/Cameras/glTF/Cameras.gltf",
+          "sha256": "5ca6b0ebf70411edd8a11427adeff23b1a2211ea7145f0964a95ac6573df9abc"
+        }
+      ]
+    },
+    {
+      "name": "UnlitTest",
+      "sha256": "b96bd0e1a629ac2c6886d5c26729026ebbe712c5c9dbe7babf440299c021c843",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/UnlitTest/README.md",
+          "sha256": "98c16c1530c5adc47bc606a1b52675da572f190ae7a9d5f10130bdc4bb83514e"
+        },
+        {
+          "path": "Models/UnlitTest/glTF/UnlitTest.bin",
+          "sha256": "a6a81ec57560242f29ee2c2a94f452a923b5548bf256b6529b0c07dea3f5c907"
+        },
+        {
+          "path": "Models/UnlitTest/glTF/UnlitTest.gltf",
+          "sha256": "b611ca0892cb1a0118e92b72ff52b3afed3e4903c15378daa72c4c252a0334e1"
+        }
+      ]
+    },
+    {
+      "name": "EmissiveStrengthTest",
+      "sha256": "e92cf062a38d1815ddfacf0a64fccaedff56ba23c1486fe79401f2de697476e4",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/EmissiveStrengthTest/README.md",
+          "sha256": "9bf3926c75ec145faec3afa3a9ca86cd726feed1f13255a6d01842fe054ca6ab"
+        },
+        {
+          "path": "Models/EmissiveStrengthTest/glTF/EmissiveStrengthTest.bin",
+          "sha256": "54ba759d776228b52a256bb7b739581ad3081ac77677ee905b4920e869ceccf5"
+        },
+        {
+          "path": "Models/EmissiveStrengthTest/glTF/EmissiveStrengthTest.gltf",
+          "sha256": "84264f4300d2618aa2be39e90448f1716df8f1946d0d172476773bc9a4a99f65"
+        },
+        {
+          "path": "Models/EmissiveStrengthTest/glTF/PlainGrid.png",
+          "sha256": "c67b0411f4f8d2c940c7e4583ce6c7607cc6c45779c88c3c16f2d2892fb9c411"
+        }
+      ]
+    },
+    {
+      "name": "MeshPrimitiveModes",
+      "sha256": "d15d1bc8f8db1068e0990865601e90a75e63351b681b309922296cbc96d8f097",
+      "diagnostics": ["unsupported-topology"],
+      "sourceFiles": [
+        {
+          "path": "Models/MeshPrimitiveModes/README.md",
+          "sha256": "7d7fb2a1e729420f7ed20b50bfe9e4f298e75f286b1103866ee43638d568254a"
+        },
+        {
+          "path": "Models/MeshPrimitiveModes/glTF/MeshPrimitiveModes.gltf",
+          "sha256": "2a8b3209c25e2fca5105539136a05f42d170767f0eb16148cd3825758e5ee977"
+        },
+        {
+          "path": "Models/MeshPrimitiveModes/glTF/buffer.bin",
+          "sha256": "4369522e5929bed650242fea069c687aa2ea1230caa61c378610b2154c1048d7"
+        }
+      ]
+    },
+    {
+      "name": "PointLightIntensityTest",
+      "sha256": "9f51ec1e5bb8fd55579ece42b94069ea1d7d2b2853c6672cbf28bebe1769e1ca",
+      "diagnostics": [],
+      "sourceFiles": [
+        {
+          "path": "Models/PointLightIntensityTest/README.md",
+          "sha256": "5925a49f58ce5d7f43d3d8d727001647c2f96e0662b42bb1b5268084f6d7ffb5"
+        },
+        {
+          "path": "Models/PointLightIntensityTest/glTF/LampColorNames.png",
+          "sha256": "92433d3e05d124a8e37d89f4f0f4863a02654409210a31b35c82154b0ea0a3cd"
+        },
+        {
+          "path": "Models/PointLightIntensityTest/glTF/PointLightIntensityTest.bin",
+          "sha256": "29c2e0d139c8fe4a190654179177166c5da1932a9378d19e8f7f74622e6b16d6"
+        },
+        {
+          "path": "Models/PointLightIntensityTest/glTF/PointLightIntensityTest.gltf",
+          "sha256": "7913fe3e6829beba77f65ea749e40b3e95906bc2894afc443c22e3d91e263733"
+        }
+      ]
+    },
+    {
+      "name": "AnimatedTriangle",
+      "sha256": "f62aa6b0a44daa6ad1336d3a40a943a34a827e393700dc81ecfa7450d2454a67",
+      "diagnostics": ["unsupported-animation"],
+      "sourceFiles": [
+        {
+          "path": "Models/AnimatedTriangle/README.md",
+          "sha256": "aaaa4d910eeaad7b42c2c3b0b9e1f821db775f8a9847542c3bd178c242b5c9e8"
+        },
+        {
+          "path": "Models/AnimatedTriangle/glTF/AnimatedTriangle.gltf",
+          "sha256": "d326af21f8d2ae6b3853f1f3e4e0d673053b1c5938659dfefe5d28c7a9f42f76"
+        },
+        {
+          "path": "Models/AnimatedTriangle/glTF/AnimatedTriangle_animation.bin",
+          "sha256": "ec3bdaac71a222034affffef8a9ec531563bc02a3720e513cd8bf852e270f99b"
+        },
+        {
+          "path": "Models/AnimatedTriangle/glTF/AnimatedTriangle_geometry.bin",
+          "sha256": "898ed7f560dca9907a80c98be57fbbc0f3a092d2e3683b964ffcfa75c549ac62"
+        }
+      ]
+    },
+    {
+      "name": "SimpleSkin",
+      "sha256": "652405bfa35196a2b843dbf40b472cfb78c1b790598ba5eb4996bbd8b6352370",
+      "diagnostics": ["unsupported-animation", "unsupported-skin"],
+      "sourceFiles": [
+        {
+          "path": "Models/SimpleSkin/README.md",
+          "sha256": "6545a0f376b1418c1b2fb3a54706c828c60239a6d9483e03276dca24ebdcc996"
+        },
+        {
+          "path": "Models/SimpleSkin/glTF/SimpleSkin.gltf",
+          "sha256": "8d92e9888340eb98e82a65a1f8b037d9a1d9f09e5fd0b6ba6d40fd93700b3239"
+        },
+        {
+          "path": "Models/SimpleSkin/glTF/SimpleSkin_animation.bin",
+          "sha256": "ff21b1bc3d0abbe53f7665060ec6c22d873b6e85a7669171a2b6b8ae01c39347"
+        },
+        {
+          "path": "Models/SimpleSkin/glTF/SimpleSkin_geometry.bin",
+          "sha256": "35f0ca6bc07976c0aadc163d4737758989cfcc9870a99800004c4478fe698b63"
+        },
+        {
+          "path": "Models/SimpleSkin/glTF/SimpleSkin_inverseBindMatrices.bin",
+          "sha256": "5844ab221cd2ad367420a248f6387b46e5f8498604427730a37ee96b4d4ec599"
+        },
+        {
+          "path": "Models/SimpleSkin/glTF/SimpleSkin_skinningData.bin",
+          "sha256": "413bc8a8c0da673df767874e6f05f0b00c9261756a08586b9d555bd5535414b5"
+        }
+      ]
+    },
+    {
+      "name": "AnimatedMorphCube",
+      "sha256": "bc085b0139fa66a8b73dfe591b06c530c5bf95ca0c570e7189d3c41002145467",
+      "diagnostics": ["unsupported-animation", "unsupported-morph"],
+      "sourceFiles": [
+        {
+          "path": "Models/AnimatedMorphCube/README.md",
+          "sha256": "b872b016a274f02a0060117976150b1180f4090aa5042e1b5861d5d178d0971d"
+        },
+        {
+          "path": "Models/AnimatedMorphCube/glTF/AnimatedMorphCube.bin",
+          "sha256": "4aba93918adba56c1cc688a38c527bc647e26f2c386802e119b4d01b7250dd23"
+        },
+        {
+          "path": "Models/AnimatedMorphCube/glTF/AnimatedMorphCube.gltf",
+          "sha256": "0b910ed4b52fd9fbb565911fc7f9f285edb0f30fa4913a93143466d439d1092e"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+node_modules
+dist
+build
+docs/.vitepress/dist
+docs/.vitepress/cache
+*.tsbuildinfo
+*.tgz
+.DS_Store
+*.png
+*.glb
+!docs/public/models/*.glb
+*.wasm
+fixtures/
+test/golden/
+!test/fixtures/
+!test/fixtures/*.gltf
+!test/fixtures/NOTICE.md

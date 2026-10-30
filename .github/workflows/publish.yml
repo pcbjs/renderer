@@ -1,0 +1,59 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.1
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/cache@v4
+        id: wbg
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-0.2.129
+
+      - if: steps.wbg.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+
+      - run: npm ci
+
+      - run: npm install -g npm@11.21.1
+
+      - name: Verify tag matches package.json version
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} (${TAG_VERSION}) does not match package.json version ${PKG_VERSION}"
+            exit 1
+          fi
+
+      - run: npm run release:check
+
+      - name: Publish dist to npm
+        run: npm publish ./dist --access public
+        env:
+          NPM_CONFIG_PROVENANCE: 'true'

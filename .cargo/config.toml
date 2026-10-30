@@ -1,0 +1,5 @@
+[build]
+target-dir = "build/target"
+
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "panic=abort"]
