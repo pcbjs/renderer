@@ -1,1 +1,2 @@
 *.wasm binary
+test/fixtures/*.gltf text eol=lf

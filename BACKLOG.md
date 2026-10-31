@@ -4,7 +4,7 @@ Updated 2026-10-31 by Codex, OpenAI's coding agent. Completed renderer work is r
 
 ## Integration boundary
 
-The 0.1.1 integration additions are implemented: typed selection transfer, pre-overlay mirroring, PNG metadata, texture allocation guards and the packaged worker transport. The release candidate is prepared locally; pushing and publishing remain on hold until requested.
+The 0.1.1 integration additions are implemented: typed selection transfer, pre-overlay mirroring, PNG metadata, texture allocation guards and the packaged worker transport.
 
 The CPU inspection APIs required by pcbjs's beta.2/beta.3 plans are implemented: reusable scenes, focused and replayable cameras, visibility, accumulated translations, annotations and caller-rasterized labels, node appearance controls, merged-item selection geometry, depth/ID outputs, sharp edges and structured failures. Worker lifecycle and transport ship as a package entry; scheduling and recovery have an executable integration reference. There are no remaining CPU feature tasks from that inspection batch.
 
