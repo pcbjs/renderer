@@ -5,13 +5,52 @@
 // ------------------------------------------------------
 
 use std::borrow::Cow;
+use std::io::Cursor;
 use std::sync::Arc;
 
+use image::{ImageDecoder, ImageReader};
 use serde_json::Value;
 
 use super::accessor::view_bytes;
 use crate::material::Material;
 use crate::texture::{ColorSpace, Filter, Image, Mipmap, Sampler, Texture, Wrap};
+
+const MAX_TEXTURE_EDGE: u32 = 4096;
+const MAX_TEXTURE_BYTES: u64 = 512 * 1024 * 1024;
+const MAX_DECODE_BYTES: u64 = 128 * 1024 * 1024;
+
+fn pyramid_bytes(mut width: u32, mut height: u32, mipmaps: bool) -> u64 {
+    let mut pixels = u64::from(width) * u64::from(height);
+    while mipmaps && (width > 1 || height > 1) {
+        width = (width / 2).max(1);
+        height = (height / 2).max(1);
+        pixels += u64::from(width) * u64::from(height);
+    }
+    pixels * 16
+}
+
+fn texture_budget(
+    retained: u64,
+    width: u32,
+    height: u32,
+    color: Option<bool>,
+    data: Option<bool>,
+    decoded: u64,
+) -> Result<u64, String> {
+    let bytes: u64 = [color, data]
+        .into_iter()
+        .flatten()
+        .map(|mips| pyramid_bytes(width, height, mips))
+        .sum();
+    let scratch = decoded + u64::from(width) * u64::from(height) * 4;
+    if width > MAX_TEXTURE_EDGE
+        || height > MAX_TEXTURE_EDGE
+        || retained + bytes + scratch > MAX_TEXTURE_BYTES
+    {
+        return Err(format!("TEXTURE_LIMIT: decoded textures exceed the {MAX_TEXTURE_EDGE}-pixel edge or 512 MiB scene budget (including mipmaps, color/data views and decode scratch)"));
+    }
+    Ok(retained + bytes)
+}
 
 pub(super) fn load_textures(
     root: &Value,
@@ -50,12 +89,25 @@ pub(super) fn load_textures(
         }
     }
     let mut decoded = Vec::with_capacity(images.len());
+    let mut retained_bytes = 0;
     for (i, image) in images.iter().enumerate() {
         let bytes = image_bytes(root, bin, image, i)?;
-        let rgba = image::load_from_memory(&bytes)
-            .map_err(|e| format!("glTF image {i} could not be decoded: {e}"))?
-            .to_rgba8();
-        let (width, height) = rgba.dimensions();
+        let decode_error = |e: image::ImageError| {
+            match e {
+            image::ImageError::Limits(_) => format!("TEXTURE_LIMIT: glTF image {i} exceeds the {MAX_TEXTURE_EDGE}-pixel edge or 128 MiB decoder budget"),
+            _ => format!("glTF image {i} could not be decoded: {e}"),
+        }
+        };
+        let mut reader = ImageReader::new(Cursor::new(&bytes))
+            .with_guessed_format()
+            .map_err(|e| format!("glTF image {i} could not be read: {e}"))?;
+        let mut limits = image::Limits::default();
+        limits.max_image_width = Some(MAX_TEXTURE_EDGE);
+        limits.max_image_height = Some(MAX_TEXTURE_EDGE);
+        limits.max_alloc = Some(MAX_DECODE_BYTES);
+        reader.limits(limits);
+        let decoder = reader.into_decoder().map_err(decode_error)?;
+        let (width, height) = decoder.dimensions();
         if width == 0 || height == 0 {
             return Err(format!("glTF image {i} is empty"));
         }
@@ -65,6 +117,17 @@ pub(super) fn load_textures(
         } else {
             color
         };
+        retained_bytes = texture_budget(
+            retained_bytes,
+            width,
+            height,
+            color,
+            data,
+            decoder.total_bytes(),
+        )?;
+        let rgba = image::DynamicImage::from_decoder(decoder)
+            .map_err(decode_error)?
+            .into_rgba8();
         decoded.push(Arc::new(Image::decode(width, height, &rgba, color, data)));
     }
     Ok(entries
@@ -200,7 +263,33 @@ fn b64(s: &str) -> Result<Vec<u8>, String> {
 mod tests {
     use super::*;
     use serde_json::json;
-    use std::io::Cursor;
+
+    #[test]
+    fn texture_budget_counts_mips_roles_scratch_and_all_images() {
+        let base = 4096 * 4096 * 4;
+        let retained = texture_budget(0, 4096, 4096, Some(true), None, base).unwrap();
+        assert_eq!(retained, 357913936);
+        assert!(texture_budget(retained, 4096, 4096, Some(false), None, base).is_err());
+        assert!(texture_budget(0, 4096, 4096, Some(true), Some(true), base).is_err());
+        assert!(texture_budget(0, 4097, 1, Some(false), None, 4097 * 4).is_err());
+        assert_eq!(pyramid_bytes(5, 3, true), (15 + 2 + 1) * 16);
+    }
+
+    #[test]
+    fn oversized_jpeg_is_rejected_before_pixel_decoding() {
+        let source = image::RgbImage::new(MAX_TEXTURE_EDGE + 1, 1);
+        let mut bytes = Vec::new();
+        image::codecs::jpeg::JpegEncoder::new(&mut bytes)
+            .encode_image(&source)
+            .unwrap();
+        let root = json!({
+            "images": [{ "bufferView": 0 }],
+            "bufferViews": [{ "buffer": 0, "byteLength": bytes.len() }]
+        });
+        assert!(load_textures(&root, &bytes, &[])
+            .unwrap_err()
+            .starts_with("TEXTURE_LIMIT:"));
+    }
 
     #[test]
     fn jpeg_textures_decode_to_linear_colour_with_opaque_alpha() {

@@ -187,6 +187,7 @@ impl Reflectance {
 }
 
 pub(crate) struct Shader<'a> {
+    pub style: crate::options::SurfaceStyle,
     pub material: &'a Material,
     texture: Option<BoundTexture<'a>>,
     emissive_texture: Option<BoundTexture<'a>>,
@@ -255,6 +256,7 @@ impl<'a> Shader<'a> {
             && texture.as_ref().is_some_and(BoundTexture::needs_gradients);
         Self {
             material,
+            style: crate::options::SurfaceStyle::default(),
             texture,
             emissive_texture,
             metallic_roughness_texture,
@@ -266,6 +268,39 @@ impl<'a> Shader<'a> {
             needs_gradients,
             shadow_gradients,
         }
+    }
+
+    pub fn blend(&self) -> bool {
+        self.material.alpha_mode == AlphaMode::Blend || self.style.opacity < 1.0
+    }
+
+    fn finish(&self, mut color: [f32; 4], fragment: Fragment, light: &Light) -> [f32; 4] {
+        let s = self.style;
+        if s.saturation != 1.0 {
+            let gray = color[0] * 0.2126 + color[1] * 0.7152 + color[2] * 0.0722;
+            for value in &mut color[..3] {
+                *value = gray + (*value - gray) * s.saturation;
+            }
+        }
+        if s.tint[3] > 0.0 {
+            for (i, value) in color[..3].iter_mut().enumerate() {
+                *value = *value * (1.0 - s.tint[3]) + s.tint[i] * s.tint[3];
+            }
+        }
+        if s.rim[3] > 0.0 {
+            let view = light
+                .view_direction
+                .unwrap_or_else(|| (light.eye - fragment.world).normalize());
+            let rim = (1.0 - fragment.normal.normalize().dot(view).abs())
+                .clamp(0.0, 1.0)
+                .powi(3)
+                * s.rim[3];
+            for (i, value) in color[..3].iter_mut().enumerate() {
+                *value += s.rim[i] * rim;
+            }
+        }
+        color[3] *= s.opacity;
+        color
     }
 
     pub fn casts_shadow(&self, fragment: Fragment, footprint: &Footprint) -> bool {
@@ -375,7 +410,9 @@ impl<'a> Shader<'a> {
         receiver_normal: Vec3,
     ) -> Option<[f32; 4]> {
         if self.material.unlit {
-            return self.albedo(fragment, footprint);
+            return self
+                .albedo(fragment, footprint)
+                .map(|color| self.finish(color, fragment, light));
         }
         let surface = self.surface(fragment, footprint, light.detail, flip)?;
         let n = surface.shading_normal;
@@ -477,7 +514,7 @@ impl<'a> Shader<'a> {
         for i in 0..3 {
             rgb[i] += self.material.emissive[i] * emission[i];
         }
-        Some([rgb[0], rgb[1], rgb[2], albedo[3]])
+        Some(self.finish([rgb[0], rgb[1], rgb[2], albedo[3]], fragment, light))
     }
 }
 

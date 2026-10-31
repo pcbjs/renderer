@@ -26,7 +26,10 @@ const pixel = rgba => [...rgba.slice((8 * 16 + 8) * 4, (8 * 16 + 8) * 4 + 4)]
 const node = { name: 'surface', geometry, color: [0, 0, 0, 1], metallic: 0, roughness: 1 }
 
 test('emissive factor is linear, independent of lighting, and uses the existing highlight mix', async () => {
-  const glb = meshGlb([{ ...node, emissive: [0.21404114, 0, 0] }])
+  const glb = meshGlb([
+    { ...node, emissive: [0.21404114, 0, 0] },
+    { ...node, name: 'other', geometry: { ...geometry, positions: geometry.positions.map((v, i) => (i % 3 === 0 ? v + 4 : v)) } },
+  ])
   for (const lighting of ['classic', 'studio']) {
     const { rgba } = await render(glb, { ...options, lighting, shadows: true })
     assert.deepEqual(pixel(rgba), [128, 0, 0, 255])

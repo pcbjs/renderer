@@ -1,6 +1,6 @@
 {
   "name": "@pcbjs/renderer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "CPU renderer that turns a glTF binary into an RGBA image",
   "type": "module",
@@ -8,6 +8,10 @@
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "import": "./dist/worker.mjs"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs"
@@ -21,6 +25,7 @@
     "test": "node --test \"test/**/*.test.mjs\"",
     "format:check": "prettier --check --ignore-unknown . && \"$HOME/.cargo/bin/cargo\" fmt --all -- --check",
     "bench": "node scripts/bench.mjs",
+    "bench:inspection": "node scripts/bench-inspection.mjs",
     "pack-smoke": "node scripts/pack-smoke.mjs",
     "docs": "npm run dev --prefix docs",
     "docs:build": "npm run build --prefix docs",
@@ -28,7 +33,7 @@
     "spec:report": "node scripts/spec-report.mjs",
     "spec:check": "node scripts/spec-report.mjs --check",
     "test:core": "export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo test --locked",
-    "lint:core": "export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo clippy --locked --all-targets -- -D warnings",
+    "lint:core": "export PATH=\"$HOME/.cargo/bin:$PATH\" && cargo clippy --locked --all-targets -- -D warnings && cargo clippy --locked --target wasm32-unknown-unknown -- -D warnings",
     "release:check": "npm run format:check && npm run lint:core && npm run build && npm test && npm run test:core && npm run spec:check && npm run pack-smoke"
   },
   "repository": {

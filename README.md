@@ -30,6 +30,8 @@ await writeFile('model.png', await encodePng(rgba, width, height))
 
 `createRenderer(glb)` parses once. Call `render` again, then `dispose()`.
 
+For focused inspection, a fit camera accepts `nodes: [0]` or explicit world-space `bounds: { min, max }`. `visibility: { only: [0], hidden: [1] }` filters geometry and shadow casters per frame; hidden nodes take precedence. Selectors include descendants, and names match every occurrence. Unknown selectors throw. The [API guide](https://github.com/pcbjs/renderer/blob/main/docs/api.md) describes framing, visibility and structured option errors.
+
 Use `lighting: 'studio'` for GGX highlights and rough studio reflections, and `shadows: true` for filtered directional shadows. Both are opt-in. Shadows also accept `{ resolution: 1024, strength: 1 }`, with resolution limited to 256–2048 (at most 16 MiB of depth storage). Core glTF base-colour, metallic-roughness, normal, occlusion and emissive textures work in both lighting modes, with two UV sets, `KHR_texture_transform`, and authored sampler filtering including mipmaps. See [the API guide](https://github.com/pcbjs/renderer/blob/main/docs/api.md) for controls and limits.
 
 Use `exposure` (EV stops) and `toneMapping: 'reinhard' | 'aces'` to control output; defaults use zero exposure adjustment and no tone mapping. `KHR_materials_emissive_strength` and `KHR_materials_unlit` are supported. Transparency adds at most 14 MiB of peeling buffers; `transparency.maxLayers` defaults to 32 and throws on overflow.

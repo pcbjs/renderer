@@ -35,3 +35,44 @@ test('a bad PNG size is rejected', async () => {
   await assert.rejects(encodePng(new Uint8Array(4), 0, 1), /positive integer/)
   await assert.rejects(encodePng(new Uint8Array(3), 1, 1), /expected 4 bytes/)
 })
+
+test('PNG tEXt preserves multiple Latin-1 metadata entries and valid chunk CRCs', async () => {
+  const { crc32 } = await import('node:zlib')
+  const rgba = new Uint8Array([20, 40, 60, 255])
+  const text = { Snapshot: 'revision-123', Legend: 'Cu: signal\nCaf\u00e9', Empty: '' }
+  const png = Buffer.from(await encodePng(rgba, 1, 1, text))
+  const decoded = {},
+    types = []
+  for (let at = 8; at < png.length;) {
+    const length = png.readUInt32BE(at),
+      type = png.toString('ascii', at + 4, at + 8)
+    types.push(type)
+    assert.equal(png.readUInt32BE(at + 8 + length), crc32(png.subarray(at + 4, at + 8 + length)))
+    if (type === 'tEXt') {
+      const data = png.subarray(at + 8, at + 8 + length),
+        zero = data.indexOf(0)
+      decoded[data.toString('latin1', 0, zero)] = data.toString('latin1', zero + 1)
+    }
+    at += length + 12
+  }
+  assert.deepEqual(decoded, text)
+  assert.deepEqual(types, ['IHDR', 'tEXt', 'tEXt', 'tEXt', 'IDAT', 'IEND'])
+  assert.deepEqual(new Uint8Array(decodePng(png).rgba), rgba)
+  assert.deepEqual(await encodePng(rgba, 1, 1), await encodePng(rgba, 1, 1, {}))
+})
+
+test('PNG metadata rejects invalid keywords, unrepresentable text and NUL bytes', async () => {
+  for (const text of [
+    null,
+    [],
+    { '': 'x' },
+    { ['x'.repeat(80)]: 'x' },
+    { ' padded': 'x' },
+    { 'two  spaces': 'x' },
+    { 'bad\0key': 'x' },
+    { Key: 'bad\0text' },
+    { Key: '\u4e2d' },
+    { Key: 1 },
+  ])
+    await assert.rejects(encodePng(new Uint8Array(4), 1, 1, text), /PNG text/)
+})

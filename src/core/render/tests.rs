@@ -94,6 +94,9 @@ fn mat(color: [f32; 4], roughness: f32, double_sided: bool, mode: AlphaMode) -> 
 
 fn ortho_opts(n: u32) -> Options {
     Options {
+        outputs: crate::options::OutputOptions::default(),
+        styles: vec![],
+        mask_style: None,
         width: n,
         height: n,
         supersample: 1,
@@ -102,6 +105,10 @@ fn ortho_opts(n: u32) -> Options {
         ambient: 0.0,
         hemisphere: 0.0,
         node_translations: Vec::new(),
+        visibility: crate::options::VisibilityOptions::default(),
+        fit_nodes: None,
+        fit_bounds: None,
+        padding: [0.0; 4],
         highlight_indices: Vec::new(),
         lights: None,
         use_asset_lights: true,
@@ -394,6 +401,70 @@ fn shadow_scene() -> Model {
         ],
         vec![],
     )
+}
+
+#[test]
+fn hidden_geometry_neither_occludes_nor_casts_shadows_and_matches_bands() {
+    let scene = shadow_scene();
+    let receiver = model(
+        vec![scene.draws[0].clone()],
+        scene.materials.clone(),
+        vec![],
+    );
+    let mut opts = ortho_opts(64);
+    opts.light_dir = [1.0, 0.0, 1.0];
+    opts.ambient = 0.2;
+    opts.supersample = 2;
+    opts.shadows = Some(crate::options::ShadowOptions {
+        resolution: 256,
+        strength: 1.0,
+    });
+    let expected = render(&receiver, &opts).unwrap();
+    let all = render(&scene, &opts).unwrap();
+    assert_ne!(all, expected);
+    opts.visibility.hidden = vec![crate::options::NodeSelector::Index(1)];
+    let hidden = render(&scene, &opts).unwrap();
+    assert_eq!(hidden, expected);
+    assert_eq!(hidden, render_bands(&scene, &opts, 4).unwrap());
+    opts.visibility.hidden.clear();
+    assert_eq!(render(&scene, &opts).unwrap(), all);
+}
+
+#[test]
+fn native_selection_and_fit_validation_reject_unknown_or_invisible_targets() {
+    use crate::options::{Bounds, NodeSelector};
+    let scene = shadow_scene();
+    let mut opts = Options::new(8, 8);
+    opts.visibility.hidden = vec![NodeSelector::Name("missing".into())];
+    assert!(render(&scene, &opts)
+        .unwrap_err()
+        .contains("visibility.hidden"));
+    opts.visibility.hidden.clear();
+    opts.highlight_indices = vec![999];
+    assert!(render(&scene, &opts)
+        .unwrap_err()
+        .contains("highlight.nodes"));
+    opts.highlight_indices.clear();
+    opts.fit_nodes = Some(vec![]);
+    assert!(render(&scene, &opts)
+        .unwrap_err()
+        .contains("visible geometry"));
+    opts.fit_nodes = Some(vec![NodeSelector::Index(0)]);
+    opts.visibility.hidden = vec![NodeSelector::Index(0)];
+    assert!(render(&scene, &opts)
+        .unwrap_err()
+        .contains("visible geometry"));
+    opts.fit_nodes = None;
+    opts.fit_bounds = Some(Bounds {
+        min: Vec3::splat(1.0),
+        max: Vec3::ZERO,
+    });
+    assert!(render(&scene, &opts).unwrap_err().contains("camera.bounds"));
+    opts.fit_bounds = Some(Bounds {
+        min: Vec3::ZERO,
+        max: Vec3::splat(f32::NAN),
+    });
+    assert!(render(&scene, &opts).unwrap_err().contains("camera.bounds"));
 }
 
 #[test]
@@ -808,4 +879,76 @@ fn punctual_shadows_affect_only_the_first_directional_light_and_match_bands() {
     assert!(px(&shadowed, 64, 16, 32)[0] < px(&plain, 64, 16, 32)[0]);
     assert_eq!(px(&shadowed, 64, 16, 32)[1], px(&plain, 64, 16, 32)[1]);
     assert_eq!(shadowed, render_bands(&m, &opts, 8).unwrap());
+}
+
+#[test]
+fn padded_frames_replay_across_bands_and_query_without_mutation() {
+    let m = model(
+        vec![
+            draw_quad(0.0, 0.7, "target"),
+            draw_quad(-2.0, 1.0, "context"),
+        ],
+        vec![mat([1.0, 0.0, 0.0, 1.0], 1.0, true, AlphaMode::Opaque)],
+        vec![],
+    );
+    for ortho in [false, true] {
+        let mut opts = ortho_opts(80);
+        opts.supersample = 2;
+        opts.camera = CamSpec::Fit {
+            ortho,
+            direction: Vec3::new(0.0, 0.0, 1.0),
+            up: Vec3::new(0.0, 1.0, 0.0),
+            margin: 1.08,
+            fov_deg: 35.0,
+        };
+        opts.fit_nodes = Some(vec![crate::NodeSelector::Index(0)]);
+        opts.padding = [5.0, 7.0, 11.0, 19.0];
+        let baseline = render(&m, &opts).unwrap();
+        assert_eq!(baseline, render_bands(&m, &opts, 6).unwrap());
+        let desc = crate::prepare_frame(&m, &opts).unwrap();
+        let state = serde_json::from_value(desc["camera"]["state"].clone()).unwrap();
+        let bounds =
+            crate::query_bounds(&m, &opts, Some(&[crate::NodeSelector::Index(0)])).unwrap();
+        assert!((bounds["min"][0].as_f64().unwrap() + 0.7).abs() < 1e-6);
+        opts.camera = CamSpec::Resolved { state };
+        opts.fit_nodes = None;
+        opts.padding = [0.0; 4];
+        assert_eq!(baseline, render(&m, &opts).unwrap());
+        let points = crate::project_points(&opts, &[Vec3::ZERO]).unwrap();
+        assert!((points[0]["x"].as_f64().unwrap() - 46.0).abs() < 1e-5);
+        assert!((points[0]["y"].as_f64().unwrap() - 37.0).abs() < 1e-5);
+        opts.visibility.only = Some(vec![]);
+        assert!(crate::query_bounds(&m, &opts, None).unwrap().is_null());
+    }
+}
+
+#[test]
+fn styled_auxiliary_images_match_across_bands_and_restore_default_rendering() {
+    let m = model(
+        vec![draw_quad(0.0, 1.0, "back"), draw_quad(0.3, 0.5, "front")],
+        vec![mat([0.2, 0.4, 0.8, 1.0], 0.5, true, AlphaMode::Opaque)],
+        vec![],
+    );
+    let mut opts = ortho_opts(32);
+    opts.supersample = 3;
+    let base = render(&m, &opts).unwrap();
+    opts.outputs.depth = true;
+    opts.outputs.node_ids = true;
+    opts.styles.push(crate::options::NodeStyle {
+        nodes: Some(vec![crate::options::NodeSelector::Index(1)]),
+        surface: crate::options::SurfaceStyle {
+            opacity: 0.4,
+            saturation: 0.1,
+            tint: [0.1, 0.6, 0.1, 0.2],
+            rim: [0.0; 4],
+        },
+    });
+    let a = render_output_bands(&m, &opts, 96).unwrap();
+    let b = render_output_bands(&m, &opts, 6).unwrap();
+    assert_eq!(a.rgba, b.rgba);
+    assert_eq!(a.depth, b.depth);
+    assert_eq!(a.node_ids, b.node_ids);
+    assert_eq!(a.node_ids[16 * 32 + 16], 1);
+    opts.styles.clear();
+    assert_eq!(render(&m, &opts).unwrap(), base);
 }

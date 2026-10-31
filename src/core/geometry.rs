@@ -4,7 +4,7 @@
 // You may find the full license in project root directory.
 // ------------------------------------------------------
 
-use crate::camera::{Camera, Proj};
+use crate::camera::Camera;
 use crate::material::{mix_bg, Fragment, Light, Material, Shader};
 use crate::math::Vec3;
 use crate::model::Draw;
@@ -113,7 +113,8 @@ impl<'a> PreparedDraw<'a> {
             });
             let normals = fragments.map(|f| f.normal);
             let colors = fragments.map(|f| f.color);
-            let flat = !pass.depth_only
+            let flat = shader.style.rim[3] == 0.0
+                && !pass.depth_only
                 && (material.unlit
                     || (!pass.light.detail
                         && pass.light.lighting == Lighting::Classic
@@ -206,37 +207,14 @@ fn fragment(draw: &Draw, index: usize, corner: usize, offset: Vec3) -> Fragment 
 }
 
 fn view_position(world: Vec3, camera: &Camera) -> Vec3 {
-    let offset = world - camera.eye;
-    Vec3::new(
-        offset.dot(camera.right),
-        offset.dot(camera.up),
-        offset.dot(camera.forward),
-    )
+    camera.view(world)
 }
 
 fn project(position: Vec3, pass: &GeometryPass<'_>) -> ProjectedPosition {
-    let z = position.z.max(1e-6);
-    let (ndc_x, ndc_y, inv_w) = match pass.camera.proj {
-        Proj::Perspective {
-            tan_half_v,
-            tan_half_h,
-        } => {
-            let inv_w = 1.0 / z;
-            (
-                position.x * inv_w / tan_half_h.max(1e-8),
-                position.y * inv_w / tan_half_v.max(1e-8),
-                inv_w,
-            )
-        }
-        Proj::Ortho { half_w, half_h } => (
-            position.x / half_w.max(1e-8),
-            position.y / half_h.max(1e-8),
-            1.0,
-        ),
-    };
+    let (x, y, inv_w) = pass.camera.project(position, pass.width, pass.height);
     ProjectedPosition {
-        x: (ndc_x + 1.0) * 0.5 * pass.width as f32,
-        y: (1.0 - ndc_y) * 0.5 * pass.height as f32,
+        x,
+        y,
         inv_w,
         z: position.z,
     }

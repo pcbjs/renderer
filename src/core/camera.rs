@@ -4,13 +4,16 @@
 // You may find the full license in project root directory.
 // ------------------------------------------------------
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::math::Vec3;
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum CamSpec {
+    Resolved {
+        state: CameraState,
+    },
     Asset {
         node: usize,
     },
@@ -52,6 +55,160 @@ pub struct Camera {
     pub proj: Proj,
     pub near: f32,
     pub far: f32,
+    pub offset: [f32; 2],
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase", deny_unknown_fields)]
+pub enum ProjectionState {
+    Perspective {
+        #[serde(rename = "tanHalfV")]
+        tan_half_v: f32,
+        #[serde(rename = "tanHalfH")]
+        tan_half_h: f32,
+    },
+    Orthographic {
+        #[serde(rename = "halfWidth")]
+        half_w: f32,
+        #[serde(rename = "halfHeight")]
+        half_h: f32,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CameraState {
+    pub position: [f32; 3],
+    pub right: [f32; 3],
+    pub up: [f32; 3],
+    pub forward: [f32; 3],
+    pub projection: ProjectionState,
+    pub near: f32,
+    pub far: Option<f32>,
+    pub offset: [f32; 2],
+}
+
+impl CameraState {
+    pub fn camera(self) -> Result<Camera, String> {
+        let right = Vec3::from(self.right);
+        let up = Vec3::from(self.up);
+        let forward = Vec3::from(self.forward);
+        let vectors = [Vec3::from(self.position), right, up, forward];
+        if vectors.iter().any(|v| !v.is_finite())
+            || [right, up, forward]
+                .iter()
+                .any(|v| (v.length_squared() - 1.0).abs() > 1e-4)
+            || right.dot(up).abs() > 1e-4
+            || right.dot(forward).abs() > 1e-4
+            || up.dot(forward).abs() > 1e-4
+            || right.cross(up).dot(forward) > -0.9999
+            || self.offset.iter().any(|v| !v.is_finite())
+        {
+            return Err(
+                "resolved camera needs a finite orthonormal right-handed basis and offset".into(),
+            );
+        }
+        let proj = match self.projection {
+            ProjectionState::Perspective {
+                tan_half_v,
+                tan_half_h,
+            } => Proj::Perspective {
+                tan_half_v,
+                tan_half_h,
+            },
+            ProjectionState::Orthographic { half_w, half_h } => Proj::Ortho { half_w, half_h },
+        };
+        let (a, b) = match proj {
+            Proj::Perspective {
+                tan_half_v,
+                tan_half_h,
+            } => (tan_half_v, tan_half_h),
+            Proj::Ortho { half_w, half_h } => (half_w, half_h),
+        };
+        if !a.is_finite()
+            || !b.is_finite()
+            || a <= 0.0
+            || b <= 0.0
+            || !self.near.is_finite()
+            || self.near < 0.0
+            || (matches!(proj, Proj::Perspective { .. }) && self.near == 0.0)
+            || self
+                .far
+                .is_some_and(|far| !far.is_finite() || far <= self.near)
+        {
+            return Err(
+                "resolved camera needs positive projection extents and valid clipping planes"
+                    .into(),
+            );
+        }
+        Ok(Camera {
+            eye: vectors[0],
+            right,
+            up,
+            forward,
+            proj,
+            near: self.near,
+            far: self.far.unwrap_or(f32::INFINITY),
+            offset: self.offset,
+        })
+    }
+}
+
+impl Camera {
+    pub fn state(self) -> CameraState {
+        let array = |v: Vec3| [v.x, v.y, v.z];
+        CameraState {
+            position: array(self.eye),
+            right: array(self.right),
+            up: array(self.up),
+            forward: array(self.forward),
+            projection: match self.proj {
+                Proj::Perspective {
+                    tan_half_v,
+                    tan_half_h,
+                } => ProjectionState::Perspective {
+                    tan_half_v,
+                    tan_half_h,
+                },
+                Proj::Ortho { half_w, half_h } => ProjectionState::Orthographic { half_w, half_h },
+            },
+            near: self.near,
+            far: self.far.is_finite().then_some(self.far),
+            offset: self.offset,
+        }
+    }
+
+    pub fn view(self, world: Vec3) -> Vec3 {
+        let p = world - self.eye;
+        Vec3::new(p.dot(self.right), p.dot(self.up), p.dot(self.forward))
+    }
+
+    pub fn project(self, position: Vec3, width: u32, height: u32) -> (f32, f32, f32) {
+        let z = position.z.max(1e-6);
+        let (x, y, inv_w) = match self.proj {
+            Proj::Perspective {
+                tan_half_v,
+                tan_half_h,
+            } => {
+                let inv_w = 1.0 / z;
+                (
+                    position.x * inv_w / tan_half_h.max(1e-8),
+                    position.y * inv_w / tan_half_v.max(1e-8),
+                    inv_w,
+                )
+            }
+            Proj::Ortho { half_w, half_h } => (
+                position.x / half_w.max(1e-8),
+                position.y / half_h.max(1e-8),
+                1.0,
+            ),
+        };
+        (
+            (x + self.offset[0] + 1.0) * 0.5 * width as f32,
+            (1.0 - y - self.offset[1]) * 0.5 * height as f32,
+            inv_w,
+        )
+    }
 }
 
 /// `dir` points from the target toward the camera. `right = up × back`, then screen-up is `back × right`.
@@ -133,7 +290,7 @@ pub fn fit_ortho_height(
     (2.0 * half_h.max(half_w / aspect.max(1e-4)) * margin).max(1e-6)
 }
 
-fn depth_range(min: Vec3, max: Vec3, eye: Vec3, forward: Vec3) -> (f32, f32) {
+pub(crate) fn depth_bounds(min: Vec3, max: Vec3, eye: Vec3, forward: Vec3) -> (f32, f32) {
     let mut z0 = f32::MAX;
     let mut z1 = f32::MIN;
     for c in corners(min, max) {
@@ -141,6 +298,11 @@ fn depth_range(min: Vec3, max: Vec3, eye: Vec3, forward: Vec3) -> (f32, f32) {
         z0 = z0.min(z);
         z1 = z1.max(z);
     }
+    (z0, z1)
+}
+
+pub(crate) fn depth_range(min: Vec3, max: Vec3, eye: Vec3, forward: Vec3) -> (f32, f32) {
+    let (z0, z1) = depth_bounds(min, max, eye, forward);
     let near = if z0 > 1e-3 {
         (z0 * 0.25).max(1e-4)
     } else {
@@ -152,6 +314,7 @@ fn depth_range(min: Vec3, max: Vec3, eye: Vec3, forward: Vec3) -> (f32, f32) {
 
 pub fn frame(spec: CamSpec, min: Vec3, max: Vec3, aspect: f32) -> Result<Camera, String> {
     let (eye, target, up_hint, proj) = match spec {
+        CamSpec::Resolved { state } => return state.camera(),
         CamSpec::Asset { .. } => {
             return Err("asset cameras must be resolved from the loaded scene".into())
         }
@@ -230,6 +393,7 @@ pub fn frame(spec: CamSpec, min: Vec3, max: Vec3, aspect: f32) -> Result<Camera,
         proj,
         near,
         far,
+        offset: [0.0; 2],
     })
 }
 

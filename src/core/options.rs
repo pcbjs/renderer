@@ -50,11 +50,70 @@ pub struct NodeTranslation {
     pub translation: Vec3,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+pub enum NodeSelector {
+    Name(String),
+    Index(usize),
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct VisibilityOptions {
+    pub only: Option<Vec<NodeSelector>>,
+    pub hidden: Vec<NodeSelector>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Bounds {
+    pub min: Vec3,
+    pub max: Vec3,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
+pub struct OutputOptions {
+    pub depth: bool,
+    pub node_ids: bool,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SurfaceStyle {
+    pub opacity: f32,
+    pub saturation: f32,
+    pub tint: [f32; 4],
+    pub rim: [f32; 4],
+}
+impl Default for SurfaceStyle {
+    fn default() -> Self {
+        Self {
+            opacity: 1.0,
+            saturation: 1.0,
+            tint: [0.0; 4],
+            rim: [0.0; 4],
+        }
+    }
+}
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NodeStyle {
+    pub nodes: Option<Vec<NodeSelector>>,
+    pub surface: SurfaceStyle,
+}
+
 /// `background` is sRGB for rgb and linear for alpha, each 0 to 1.
 /// `dim` is how far nodes that are not named move toward the background: 0 leaves them, 1 is the background.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Options {
+    #[serde(default)]
+    pub outputs: OutputOptions,
+    #[serde(default)]
+    pub styles: Vec<NodeStyle>,
+    #[serde(skip)]
+    pub mask_style: Option<usize>,
     pub width: u32,
     pub height: u32,
     pub supersample: u32,
@@ -64,6 +123,14 @@ pub struct Options {
     pub hemisphere: f32,
     #[serde(default)]
     pub node_translations: Vec<NodeTranslation>,
+    #[serde(default)]
+    pub visibility: VisibilityOptions,
+    #[serde(default)]
+    pub fit_nodes: Option<Vec<NodeSelector>>,
+    #[serde(default)]
+    pub fit_bounds: Option<Bounds>,
+    #[serde(default)]
+    pub padding: [f32; 4],
     #[serde(default)]
     pub highlight_indices: Vec<usize>,
     #[serde(default)]
@@ -94,6 +161,9 @@ pub struct Options {
 impl Options {
     pub fn new(width: u32, height: u32) -> Self {
         Self {
+            outputs: OutputOptions::default(),
+            styles: vec![],
+            mask_style: None,
             width,
             height,
             supersample: 1,
@@ -102,6 +172,10 @@ impl Options {
             ambient: 0.25,
             hemisphere: 0.0,
             node_translations: Vec::new(),
+            visibility: VisibilityOptions::default(),
+            fit_nodes: None,
+            fit_bounds: None,
+            padding: [0.0; 4],
             highlight_indices: Vec::new(),
             lights: None,
             use_asset_lights: true,
@@ -134,6 +208,41 @@ pub fn options_from_json(text: &str) -> Result<Options, String> {
 }
 
 pub(crate) fn validate(opts: &Options) -> Result<(), String> {
+    if opts.padding.iter().any(|n| !n.is_finite() || *n < 0.0)
+        || opts.padding[1] + opts.padding[3] >= opts.width as f32
+        || opts.padding[0] + opts.padding[2] >= opts.height as f32
+    {
+        return Err("camera.padding must leave a positive viewport".into());
+    }
+    if opts.fit_nodes.is_some() || opts.fit_bounds.is_some() || opts.padding != [0.0; 4] {
+        if !matches!(opts.camera, CamSpec::Fit { .. }) {
+            return Err("camera.nodes and camera.bounds require a fit camera".into());
+        }
+        if opts.fit_nodes.is_some() && opts.fit_bounds.is_some() {
+            return Err("camera.nodes and camera.bounds cannot be combined".into());
+        }
+    }
+    for style in &opts.styles {
+        let s = style.surface;
+        if [s.opacity, s.saturation]
+            .iter()
+            .chain(s.tint.iter())
+            .chain(s.rim.iter())
+            .any(|v| !v.is_finite() || !(0.0..=1.0).contains(v))
+        {
+            return Err("style values must be finite between zero and one".into());
+        }
+    }
+    if let Some(bounds) = opts.fit_bounds {
+        if !bounds.min.is_finite()
+            || !bounds.max.is_finite()
+            || bounds.min.x > bounds.max.x
+            || bounds.min.y > bounds.max.y
+            || bounds.min.z > bounds.max.z
+        {
+            return Err("camera.bounds must be finite with min <= max on every axis".into());
+        }
+    }
     if opts.width == 0 || opts.height == 0 || opts.width > 4096 || opts.height > 4096 {
         return Err(format!(
             "image is {} by {} before supersampling; the limit is 4096 by 4096",
@@ -221,6 +330,9 @@ pub(crate) fn validate(opts: &Options) -> Result<(), String> {
             }
         }
         CamSpec::Asset { .. } => {}
+        CamSpec::Resolved { state } => {
+            state.camera()?;
+        }
         CamSpec::Ortho { height, .. } => {
             if !(height.is_finite() && height > 0.0) {
                 return Err("orthographic height must be a positive finite number".into());

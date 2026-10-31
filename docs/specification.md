@@ -55,6 +55,16 @@ The [detailed checklist](#detailed-checklist) links every entry to the relevant 
 
 **Inventory checks** verify fixture hashes, named test declarations, implementation paths and generated documentation. CI runs these after the executable tests. An inventory check alone does not establish that the tests passed.
 
+## Inspection integration evidence
+
+Inspection features are renderer APIs rather than glTF conformance claims. `overlays.test.mjs` checks annotation depth/clipping, caller label pixels, style precedence, fading and occluded outlines. `selection-contract.test.mjs` checks overlapping original shapes against a merged surface and exercises sidecar masks, unchanged ordinary pixels, selected bounds, framing and malformed inputs. `edges.test.mjs` verifies faceted-vertex welding and exclusion of coplanar diagonals. Native tests compare styled RGBA, depth and IDs across band sizes. `integration.test.mjs` exercises checked-in blinky/PSU exports and nested assembly anchors, including empty missing-model nodes. An empty node test does not claim the renderer resolves missing external model files.
+
+`packaged-worker.test.mjs` covers FIFO load/render, typed selection transfer and detachment, queries, transactional replacement, clone failures and termination; the tarball smoke also imports and runs the packaged worker from an isolated install. `worker.test.mjs` covers real worker reuse, output transfer, rejected replacement assets, queue bounds, disposal and serialized errors. A separate injected failure fixture verifies runtime recreation, cached-scene reload and exactly one retry. CI builds the WASM package on Linux and consumes that artifact on Linux, macOS and Windows with Node 22 and 24. Configuring those jobs is not evidence they have already run successfully.
+
+`npm run bench:inspection` reports GLB load, first render, PNG encoding, repeated top/bottom/inspection requests, worker startup/load, render/output transfer and process RSS growth separately. It excludes compilation/export and MCP transport. RSS growth is an endpoint process measurement, not peak memory or a per-scene allocation count. Proposed non-gating laptop budgets are 2 seconds for an 800×600 render and 3 seconds for each inspection render plus PNG at supersample 2. Local macOS/Node 26 measurements on 2026-10-30: blinky (43,782 triangles) rendered in 228 ms and PSU (221,427) in 304 ms; repeated render-plus-PNG requests ranged from 176 to 490 ms. These timings do not establish production request latency or GPU benefit.
+
+`mirror.test.mjs` checks reflected geometry/masks/depth/IDs, unchanged camera handedness, frame replay and readable depth-tested labels. `png.test.mjs` checks metadata contents and chunk CRCs. `texture-limits.test.mjs` rejects oversized PNG headers before decoding; native image tests reject oversized JPEGs and count mip chains, separate colour/data views and aggregate texture storage. Selection tests cover typed subarrays, caller mutation and rejection of malformed and oversized buffers.
+
 ## Run the checks
 
 ```sh

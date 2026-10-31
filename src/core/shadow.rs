@@ -5,6 +5,7 @@
 // ------------------------------------------------------
 
 use crate::camera::{axes, fit_ortho_height, Camera, Proj};
+use crate::frame::SceneFrame;
 use crate::geometry::{GeometryPass, PreparedDraw};
 use crate::material::{AlphaMode, Light, Shader};
 use crate::math::Vec3;
@@ -25,16 +26,16 @@ impl ShadowMap {
         model: &Model,
         shaders: &[Shader<'_>],
         light: &Light,
-        min: Vec3,
-        max: Vec3,
-        offsets: &[Vec3],
+        frame: &SceneFrame,
         options: ShadowOptions,
     ) -> Result<Self, String> {
+        let (min, max) = (frame.bounds_min, frame.bounds_max);
         let up = Vec3::new(0.0, 1.0, 0.0);
         let (back, right, top) = axes(light.dir, up);
         let span = fit_ortho_height(min, max, light.dir, up, 1.0, 1.04);
         let radius = (max - min).length().max(1e-6) * 0.5;
         let camera = Camera {
+            offset: [0.0; 2],
             eye: (min + max) * 0.5 + back * (radius * 3.0),
             right,
             up: top,
@@ -56,7 +57,16 @@ impl ShadowMap {
             background: [0.0; 4],
             depth_only: true,
         };
-        for (draw, offset) in model.draws.iter().zip(offsets) {
+        for (i, ((draw, offset), visible)) in model
+            .draws
+            .iter()
+            .zip(&frame.offsets)
+            .zip(&frame.visible)
+            .enumerate()
+        {
+            if !visible || frame.styles[i].opacity < 1.0 {
+                continue;
+            }
             let shader = shaders
                 .get(draw.material)
                 .ok_or_else(|| format!("draw material {} is missing", draw.material))?;

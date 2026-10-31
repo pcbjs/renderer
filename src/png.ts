@@ -85,9 +85,19 @@ function concat(parts: Uint8Array[]): Uint8Array {
   return out
 }
 
-export async function encodePng(rgba: Uint8Array, width: number, height: number): Promise<Uint8Array> {
+export async function encodePng(rgba: Uint8Array, width: number, height: number, text: Record<string, string> = {}): Promise<Uint8Array> {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) throw new Error(`PNG size ${width} by ${height} is not a positive integer`)
   if (rgba.length !== width * height * 4) throw new Error(`PNG expected ${width * height * 4} bytes of RGBA, got ${rgba.length}`)
+  if (!text || typeof text !== 'object' || Array.isArray(text)) throw new Error('PNG text must be a record of keywords and Latin-1 strings')
+  const metadata = Object.entries(text).map(([keyword, value]) => {
+    if (!/^[\x20-\x7e\xa1-\xff]{1,79}$/.test(keyword) || keyword.startsWith(' ') || keyword.endsWith(' ') || keyword.includes('  '))
+      throw new Error('PNG text keywords must be 1 to 79 printable Latin-1 characters without leading, trailing or consecutive spaces')
+    if (typeof value !== 'string' || /[^\x0a\x20-\x7e\xa0-\xff]/.test(value)) throw new Error('PNG text values must be printable Latin-1 strings or linefeeds')
+    const data = new Uint8Array(keyword.length + 1 + value.length)
+    for (let i = 0; i < keyword.length; i++) data[i] = keyword.charCodeAt(i)
+    for (let i = 0; i < value.length; i++) data[keyword.length + 1 + i] = value.charCodeAt(i)
+    return chunk('tEXt', data)
+  })
   const stride = width * 4
   const raw = new Uint8Array((stride + 1) * height)
   for (let y = 0; y < height; y++) {
@@ -103,5 +113,5 @@ export async function encodePng(rgba: Uint8Array, width: number, height: number)
   ihdr[9] = 6
   const z = await deflate(raw)
   const sig = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
-  return concat([sig, chunk('IHDR', ihdr), chunk('IDAT', z), chunk('IEND', new Uint8Array())])
+  return concat([sig, chunk('IHDR', ihdr), ...metadata, chunk('IDAT', z), chunk('IEND', new Uint8Array())])
 }

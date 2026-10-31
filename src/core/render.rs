@@ -4,9 +4,7 @@
 // You may find the full license in project root directory.
 // ------------------------------------------------------
 
-use std::collections::HashSet;
-
-use crate::camera::{frame, CamSpec, Proj};
+use crate::camera::Proj;
 use crate::color::{byte_lin, srgb_to_linear, OutputTransform};
 use crate::framebuffer::{paint_outline, Framebuffer};
 use crate::geometry::{GeometryPass, PreparedDraw};
@@ -22,17 +20,36 @@ use crate::transparency::{self, PeelBuffer};
 const DIRECT_PIXELS: u64 = 8_000_000;
 const BAND_PIXELS: u64 = 2_000_000;
 
+pub struct RenderOutput {
+    pub rgba: Vec<u8>,
+    pub depth: Vec<f32>,
+    pub node_ids: Vec<u32>,
+}
+
 pub fn render(model: &Model, opts: &Options) -> Result<Vec<u8>, String> {
+    render_output(model, opts).map(|output| output.rgba)
+}
+
+pub fn render_output(model: &Model, opts: &Options) -> Result<RenderOutput, String> {
     validate(opts)?;
     let band = band_height(
         opts.width * opts.supersample,
         opts.height * opts.supersample,
         opts.supersample,
     );
-    render_bands(model, opts, band)
+    render_output_bands(model, opts, band)
 }
 
+#[cfg(test)]
 fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>, String> {
+    render_output_bands(model, opts, band_rows).map(|output| output.rgba)
+}
+
+fn render_output_bands(
+    model: &Model,
+    opts: &Options,
+    band_rows: u32,
+) -> Result<RenderOutput, String> {
     let width = opts.width;
     let height = opts.height;
     let samples = opts.supersample;
@@ -45,11 +62,14 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
         opts.background[3].clamp(0.0, 1.0),
     ];
     let transform = OutputTransform::new(opts.exposure, opts.tone_mapping);
-    let transparent = model.draws.iter().any(|draw| {
-        model
-            .materials
-            .get(draw.material)
-            .is_some_and(|m| m.alpha_mode == AlphaMode::Blend)
+    let frame = crate::frame::prepare(model, opts)?;
+    let transparent = model.draws.iter().enumerate().any(|(i, draw)| {
+        frame.visible[i]
+            && (frame.styles[i].opacity < 1.0
+                || model
+                    .materials
+                    .get(draw.material)
+                    .is_some_and(|m| m.alpha_mode == AlphaMode::Blend))
     });
     let band_rows = if transparent {
         let rows = (transparency::BAND_PIXELS / sample_width as u64) as u32;
@@ -58,59 +78,23 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
         band_rows
     };
     let pixels = (width as usize) * (height as usize);
-    for offset in &opts.node_translations {
-        if !model.nodes.iter().any(|node| node.index == offset.node) {
-            return Err(format!(
-                "node translation references node {} outside the selected scene",
-                offset.node
-            ));
-        }
-    }
-    let offset = |nodes: &[usize]| {
-        opts.node_translations
-            .iter()
-            .filter(|t| nodes.contains(&t.node))
-            .fold(Vec3::ZERO, |sum, t| sum + t.translation)
-    };
-    let offsets: Vec<_> = model.draws.iter().map(|draw| offset(&draw.nodes)).collect();
-    let (bmin, bmax) = translated_bounds(model, &offsets);
-    let aspect = width as f32 / height as f32;
-    let mut camera = if let CamSpec::Asset { node } = opts.camera {
-        let asset = model
-            .cameras
-            .iter()
-            .find(|c| c.node == node)
-            .ok_or_else(|| format!("camera node {node} is not in the selected scene"))?;
-        let mut camera = asset.camera;
-        camera.eye = camera.eye + offset(&asset.nodes);
-        if asset.dynamic_aspect {
-            if let Proj::Perspective { tan_half_v, .. } = camera.proj {
-                camera.proj = Proj::Perspective {
-                    tan_half_v,
-                    tan_half_h: tan_half_v * aspect,
-                };
-            }
-        }
-        camera
-    } else {
-        frame(opts.camera, bmin, bmax, aspect)?
-    };
-    if let Some(near) = opts.near {
-        camera.near = near;
-    }
-    if let Some(far) = opts.far {
-        camera.far = far;
-    }
-    if camera.far <= camera.near
-        || (matches!(camera.proj, Proj::Perspective { .. }) && camera.near <= 0.0)
-    {
-        return Err(
-            "camera needs 0 < near < far for perspective, or 0 <= near < far for orthographic"
-                .into(),
-        );
-    }
-    if model.triangles == 0 {
-        return Ok(fill_background(width, height, &background, transform));
+    let camera = frame.camera;
+    let offsets = &frame.offsets;
+    let offset = |nodes: &[usize]| crate::frame::node_offset(nodes, opts);
+    if !frame.visible.iter().any(|v| *v) {
+        return Ok(RenderOutput {
+            rgba: fill_background(width, height, &background, transform),
+            depth: if opts.outputs.depth {
+                vec![f32::INFINITY; pixels]
+            } else {
+                vec![]
+            },
+            node_ids: if opts.outputs.node_ids {
+                vec![u32::MAX; pixels]
+            } else {
+                vec![]
+            },
+        });
     }
     let mut punctual = opts.lights.clone().or_else(|| {
         if opts.use_asset_lights && !model.lights.is_empty() {
@@ -163,10 +147,26 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
     if let Some(shadows) = opts.shadows.filter(|shadows| {
         shadows.strength > 0.0 && (light.punctual.is_none() || light.shadow_light.is_some())
     }) {
-        light.shadow = Some(ShadowMap::new(
-            model, &shaders, &light, bmin, bmax, &offsets, shadows,
-        )?);
+        light.shadow = Some(ShadowMap::new(model, &shaders, &light, &frame, shadows)?);
     }
+    let draw_shaders: Vec<_> = if opts.styles.is_empty() {
+        vec![]
+    } else {
+        model
+            .draws
+            .iter()
+            .enumerate()
+            .map(|(i, draw)| {
+                let material = model
+                    .materials
+                    .get(draw.material)
+                    .ok_or_else(|| format!("draw material {} is missing", draw.material))?;
+                let mut shader = Shader::new(material, &model.textures);
+                shader.style = frame.styles[i];
+                Ok(shader)
+            })
+            .collect::<Result<Vec<_>, String>>()?
+    };
     let pass = GeometryPass {
         camera: &camera,
         width: sample_width,
@@ -175,11 +175,13 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
         background,
         depth_only: false,
     };
-    let highlight_names: HashSet<&str> = opts.highlight.iter().map(|s| s.as_str()).collect();
     let dim = opts.dim.clamp(0.0, 1.0);
     let mut highlighted = vec![false; model.draws.len() + 1];
     let mut draws = Vec::with_capacity(model.draws.len());
     for (i, draw) in model.draws.iter().enumerate() {
+        if !frame.visible[i] {
+            continue;
+        }
         if draw.material >= shaders.len() {
             return Err(format!(
                 "draw material {} is missing from the {} materials",
@@ -187,15 +189,8 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
                 shaders.len()
             ));
         }
-        highlighted[i + 1] = draw
-            .names
-            .iter()
-            .any(|name| highlight_names.contains(name.as_str()))
-            || draw
-                .nodes
-                .iter()
-                .any(|node| opts.highlight_indices.contains(node));
-        let dim = if (highlight_names.is_empty() && opts.highlight_indices.is_empty())
+        highlighted[i + 1] = frame.highlighted[i];
+        let dim = if (opts.highlight.is_empty() && opts.highlight_indices.is_empty())
             || highlighted[i + 1]
         {
             0.0
@@ -204,9 +199,17 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
         };
         let offset = offsets[i];
         let prepared = PreparedDraw::new(draw, offset, &pass, (i + 1) as u32, dim)?;
-        draws.push((prepared, &shaders[draw.material]));
+        draws.push((
+            prepared,
+            draw_shaders.get(i).unwrap_or(&shaders[draw.material]),
+        ));
     }
-    let track_ids = highlighted.iter().any(|highlighted| *highlighted);
+    let track_ids = opts.outputs.node_ids || highlighted.iter().any(|highlighted| *highlighted);
+    let mut depth = if opts.outputs.depth {
+        vec![f32::INFINITY; pixels]
+    } else {
+        vec![]
+    };
     let mut rgba = vec![0; pixels * 4];
     let mut output_ids = if track_ids {
         vec![0; pixels]
@@ -222,7 +225,7 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
             background,
         );
         for (draw, shader) in &draws {
-            if shader.material.alpha_mode == AlphaMode::Blend {
+            if shader.blend() {
                 continue;
             }
             let rows = target.y..target.y + target.height;
@@ -242,7 +245,7 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
             for layer in 0..=opts.transparency.max_layers {
                 peel.begin_layer();
                 for (draw, shader) in &draws {
-                    if shader.material.alpha_mode != AlphaMode::Blend {
+                    if !shader.blend() {
                         continue;
                     }
                     draw.triangles(
@@ -267,11 +270,44 @@ fn render_bands(model: &Model, opts: &Options, band_rows: u32) -> Result<Vec<u8>
             peel.composite(&mut target);
         }
         target.resolve(samples as usize, &mut rgba, &mut output_ids, transform);
+        if opts.outputs.depth {
+            for row in 0..target.height / samples as usize {
+                for x in 0..width as usize {
+                    let center = (row * samples as usize + samples as usize / 2) * target.width
+                        + x * samples as usize
+                        + samples as usize / 2;
+                    depth[(y as usize / samples as usize + row) * width as usize + x] =
+                        target.depth[center];
+                }
+            }
+        }
     }
     if track_ids {
         paint_outline(&mut rgba, &output_ids, &highlighted, width, height);
     }
-    Ok(rgba)
+    let node_ids = if opts.outputs.node_ids {
+        output_ids
+            .into_iter()
+            .map(|id| {
+                if id == 0 {
+                    u32::MAX
+                } else {
+                    model.draws[id as usize - 1]
+                        .nodes
+                        .last()
+                        .copied()
+                        .map_or(u32::MAX, |n| n as u32)
+                }
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+    Ok(RenderOutput {
+        rgba,
+        depth,
+        node_ids,
+    })
 }
 
 fn band_height(width: u32, height: u32, samples: u32) -> u32 {
@@ -299,20 +335,6 @@ fn fill_background(
         pixel.copy_from_slice(&px);
     }
     rgba
-}
-
-fn translated_bounds(model: &Model, offsets: &[Vec3]) -> (Vec3, Vec3) {
-    if offsets.iter().all(|v| *v == Vec3::ZERO) {
-        return (model.bounds_min, model.bounds_max);
-    }
-    let mut min = Vec3::splat(f32::MAX);
-    let mut max = Vec3::splat(f32::MIN);
-    for (d, off) in model.draws.iter().zip(offsets) {
-        let off = *off;
-        min = min.min(d.bounds_min + off);
-        max = max.max(d.bounds_max + off);
-    }
-    (min, max)
 }
 
 #[cfg(test)]

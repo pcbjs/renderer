@@ -15,6 +15,18 @@ const r = (...p: string[]) => resolve(root, ...p)
 const external = [/^node:/]
 
 const config: RollupOptions[] = [
+  ...['worker', 'worker-runtime'].map(name => ({
+    input: r('src', `${name}.ts`),
+    external: [...external, './index.js'],
+    output: { format: 'esm' as const, file: r('dist', `${name}.mjs`), sourcemap: true, paths: (id: string) => (id.endsWith('/index.js') ? './index.mjs' : id) },
+    plugins: [esbuild({ target: 'node22' })],
+  })),
+  {
+    input: r('src', 'worker.ts'),
+    external: [...external, './index.js'],
+    output: { format: 'esm', file: r('dist', 'worker.d.ts') },
+    plugins: [dts()],
+  },
   {
     input: r('src', 'index.ts'),
     external,

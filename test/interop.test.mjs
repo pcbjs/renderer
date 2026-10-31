@@ -99,6 +99,7 @@ test('authored cameras honor node transforms, clip planes, and aspect ratio', as
   try {
     assert.deepEqual(renderer.info.cameras, [1])
     assert.deepEqual(pixel(await renderer.render({ ...options, camera: { type: 'asset', node: 1 } })), [255, 255, 255, 255])
+    assert.deepEqual(pixel(await renderer.render({ ...options, camera: { type: 'asset', node: 1 }, visibility: { only: [0], hidden: [1] } })), [255, 255, 255, 255])
     assert.equal(pixel(await renderer.render({ ...options, camera: { type: 'asset', node: 1 }, nodeTranslations: [{ node: 1, translation: [3, 0, 0] }] }))[3], 0)
     await assert.rejects(renderer.render({ ...options, camera: { type: 'asset', node: 0 } }), /camera node 0/)
   } finally {
@@ -117,6 +118,7 @@ test('authored cameras honor node transforms, clip planes, and aspect ratio', as
 test('punctual lights use authored units, inverse-square falloff, range, colour and transforms', async () => {
   const directional = lit({ type: 'directional', color: [1, 0, 0], intensity: Math.PI })
   assert.deepEqual(pixel(await render(directional, options)), [255, 0, 0, 255])
+  assert.deepEqual(pixel(await render(directional, { ...options, visibility: { only: [0], hidden: [1] } })), [255, 0, 0, 255])
   const point = lit({ type: 'point', intensity: Math.PI }, { translation: [0, 0, 2], scale: [5, 5, 5] })
   assert.deepEqual(pixel(await render(point, options)), [137, 137, 137, 255])
   assert.deepEqual(pixel(await render(point, { ...options, nodeTranslations: [{ node: 1, translation: [0, 0, -1] }] })), [255, 255, 255, 255])

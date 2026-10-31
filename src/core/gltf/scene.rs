@@ -185,6 +185,7 @@ pub(super) fn camera(
         node,
         nodes,
         camera: Camera {
+            offset: [0.0; 2],
             eye,
             right,
             up,

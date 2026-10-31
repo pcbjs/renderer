@@ -6,9 +6,10 @@
 
 use crate::framebuffer::Framebuffer;
 
-pub(crate) const BAND_PIXELS: u64 = 262_144;
+pub(crate) const BAND_PIXELS: u64 = 244_667;
 
 pub(crate) struct PeelBuffer {
+    nearest_depth: Vec<f32>,
     previous_depth: Vec<f32>,
     previous_order: Vec<u64>,
     depth: Vec<f32>,
@@ -21,6 +22,7 @@ pub(crate) struct PeelBuffer {
 impl PeelBuffer {
     pub fn new(pixels: usize) -> Self {
         Self {
+            nearest_depth: vec![f32::INFINITY; pixels],
             previous_depth: vec![f32::NEG_INFINITY; pixels],
             previous_order: vec![0; pixels],
             depth: vec![f32::INFINITY; pixels],
@@ -33,6 +35,7 @@ impl PeelBuffer {
 
     pub fn clear(&mut self, pixels: usize) {
         self.active = pixels;
+        self.nearest_depth[..pixels].fill(f32::INFINITY);
         self.previous_depth[..pixels].fill(f32::NEG_INFINITY);
         self.previous_order[..pixels].fill(0);
         self.accumulated[..pixels].fill([0.0; 4]);
@@ -73,8 +76,11 @@ impl PeelBuffer {
             }
             let color = self.color[i];
             let accumulated = &mut self.accumulated[i];
-            if accumulated[3] == 0.0 && !target.ids.is_empty() {
-                target.ids[i] = (self.order[i] >> 32) as u32;
+            if accumulated[3] == 0.0 {
+                self.nearest_depth[i] = self.depth[i];
+                if !target.ids.is_empty() {
+                    target.ids[i] = (self.order[i] >> 32) as u32;
+                }
             }
             let contribution = (1.0 - accumulated[3]) * color[3];
             for channel in 0..3 {
@@ -90,6 +96,7 @@ impl PeelBuffer {
             if front[3] == 0.0 {
                 continue;
             }
+            target.depth[i] = self.nearest_depth[i];
             let back = target.color[i];
             let remaining = (1.0 - front[3]) * back[3];
             let alpha = front[3] + remaining;
